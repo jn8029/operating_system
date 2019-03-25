@@ -26,13 +26,14 @@ int allocate_pid(void){
 
 void release_pid(int pid){
 	if (pid>=MIN_PID && pid<=MAX_PID){
-		pid -= 300;
+		pid -= MIN_PID;
 		pid_map[pid]=false;
-		printf("PID %d is released\n",pid+300);
+		printf("PID %d is released\n",pid+MIN_PID);
 	} else {
 		printf("PID %d is out of range\n",pid);
 	}
  }
+
 int main(){
 	int allocated = allocate_map();
 	if (allocated==1){
@@ -48,7 +49,6 @@ int main(){
 			allocated = allocate_pid();
 			printf("allocated pid is %d\n",allocated);
 		}
-
 	} else{
 		printf("allocation failed\n");
 	}
