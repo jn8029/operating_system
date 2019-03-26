@@ -16,7 +16,6 @@ int main(void){
     fflush(stdout);
     char *command;
     command = (char*)malloc(sizeof(char)*MAX_LINE);
-
     fgets(command,MAX_LINE, stdin);
     printf("received command %s\n",command);
     history_commands[history_counter%MAX_LINE] = command;
