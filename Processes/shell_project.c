@@ -3,64 +3,98 @@
 #include <unistd.h>
 #include <string.h>
 
-#define MAX_LINE 80
+#define MAX_ARGS 80
+#define MAX_HISTORY 5
+#define MAX_COMMAND_LENGTH 80
+
+struct CommandNode {
+  char *command;
+  int index;
+  struct CommandNode *next;
+};
+typedef struct CommandNode CommandNode;
+
+typedef struct {
+  CommandNode *head;
+  CommandNode *tail;
+} CommandList;
 
 int main(void){
-  char *args[MAX_LINE];
-  char *history_commands[MAX_LINE];
+  char *args[MAX_ARGS];
   int should_run = 1;
-  int history_counter= 0;
-  while (should_run){
+  int history_counter= 1;
+  char *history = "history\n";
+  char *quit = "quit\n";
+  char *double_exclamation = "!!\n";
 
+  CommandList command_list;
+  CommandNode head;
+  head.next = &head;
+  command_list.head = &head;
+  command_list.tail = &head;
+
+  while (should_run){
     printf("osh>");
     fflush(stdout);
     char *command;
-    command = (char*)malloc(sizeof(char)*MAX_LINE);
-    fgets(command,MAX_LINE, stdin);
-    printf("received command %s\n",command);
-    history_commands[history_counter%MAX_LINE] = command;
-    history_counter++;
-    char *history = "history\n";
-    char *quit = "quit\n";
+    command = (char*)malloc(sizeof(char)*MAX_COMMAND_LENGTH);
+    fgets(command, MAX_COMMAND_LENGTH, stdin);
+
+
     if (strcmp(command,history)==0){
-      for (size_t i =0; i<history_counter; i++){
-        printf("%zu %s",i, history_commands[i]);
+      CommandNode *temp;
+      temp = command_list.head;
+      while (1){
+        if(temp->command!=NULL)printf("%d %s", temp->index, temp->command);
+        if (temp->next == temp){
+          break;
+        }
+        temp = temp->next;
       }
       continue;
-    } else if (strcmp(command,quit)==0){
+    } else if (strcmp(command, quit)==0){
       break;
+    } else if (strcmp(command,double_exclamation)==0){
+      command = command_list.tail->command;
     }
 
+    CommandNode *comm;
+    /*sizeof: need to dereference comm otherwise it'll be the size of a pointer (8 bytes)*/
+    comm = (CommandNode*)malloc(sizeof(*comm));
+    comm->index = history_counter;
+    comm->command = command;
+    comm->next = comm;
+    command_list.tail->next = comm;
+    command_list.tail = comm;
+    history_counter++;
 
-    char arg[MAX_LINE];
+
+    char arg[MAX_COMMAND_LENGTH];
     size_t command_char_counter = 0;
-    for(size_t j = 0; j < MAX_LINE; j++){
+    for(size_t j = 0; j < MAX_ARGS; j++){
       char* comm_arg;
-      comm_arg = (char*)malloc(sizeof(char)*MAX_LINE);
+      comm_arg = (char*)malloc(sizeof(char)*MAX_COMMAND_LENGTH);
       size_t i = 0;
-      for(; command[command_char_counter] != ' ' && command[command_char_counter]!='\0' && command[command_char_counter]!='\n'; command_char_counter++,i++){
+      for(; (int)command[command_char_counter] <=126 && (int)command[command_char_counter] >=33 ; command_char_counter++,i++){
         comm_arg[i] = command[command_char_counter];
       }
       comm_arg[i] = '\0';
       args[j] = comm_arg;
       if (command[command_char_counter] == '\0' | command[command_char_counter] == '\n'){
-        printf("meeting ender\n");
+
         break;
       }
       command_char_counter ++;
-
-
-
     }
     pid_t child = fork();
     if (child<0){
-      printf("fork failed\n");
+      printf("Error: fork failed\n");
     }else if (child==0){
       execvp(args[0],args);
     } else{
       pid_t finished;
       finished = wait(NULL);
-      printf("finished child %d\n",finished);
+      printf("Info: finished child process pid=%d\n",finished);
     }
 
   }
